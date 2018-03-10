@@ -2,6 +2,7 @@ import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/first';
 import 'rxjs/add/operator/share';
 import { StompConfig } from './stomp.config';
 import * as Stomp from '@stomp/stompjs';
@@ -43,6 +44,14 @@ export declare class StompRService {
      */
     serverHeadersObservable: Observable<StompHeaders>;
     private _serverHeadersBehaviourSubject;
+    /**
+     * Will emit all messages to the default queue (any message that are not handled by a subscription)
+     */
+    defaultMessagesObservable: Subject<Stomp.Message>;
+    /**
+     * Will emit all receipts
+     */
+    receiptsObservable: Subject<Stomp.Frame>;
     /**
      * Will trigger when an error occurs. This Subject can be used to handle errors from
      * the stomp broker.
@@ -121,6 +130,19 @@ export declare class StompRService {
      * @returns {Observable<Stomp.Message>}
      */
     subscribe(queueName: string, headers?: StompHeaders): Observable<Stomp.Message>;
+    /**
+     * Handle messages to default queue, it will include any unhandled messages. We can use this for
+     * RPC type communications.
+     */
+    protected setupOnReceive(): void;
+    /**
+     * Emit all receipts.
+     */
+    protected setupReceipts(): void;
+    /**
+     * Wait for receipt, this indicates that server has carried out the related operation
+     */
+    waitForReceipt(receiptId: string, callback: () => void): void;
     /**
      * Callback Functions
      *

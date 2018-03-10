@@ -1,14 +1,15 @@
 {
   "name": "@stomp/ng2-stompjs",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "dist": "ng-packagr -p ng-package.json",
     "build": "ng build",
     "test": "ng test",
-    "doc": "typedoc --excludePrivate --mode file --out docs/ ./index.ts",
-    "cleanup": "rm -rf dist doc",
+    "doc": "bin/doc-gen.sh",
+    "doc-serve": "bin/doc-gen.sh -r 59322 -s -w -o",
+    "cleanup": "rm -rf dist docs",
     "lint": "ng lint"
   },
   "repository": {
@@ -35,7 +36,7 @@
   },
   "main": "./index.ts",
   "dependencies": {
-    "@stomp/stompjs": "^4.0.0",
+    "@stomp/stompjs": "^4.0.0 >=4.0.2"
     "angular2-uuid": "^1.1.1"
   },
   "devDependencies": {
@@ -47,6 +48,7 @@
     "@angular/platform-browser": "^4.0.0",
     "@angular/platform-browser-dynamic": "^4.0.0",
     "@angular/router": "^4.0.0",
+    "@compodoc/compodoc": "^1.0.5",
     "@types/jasmine": "2.5.38",
     "@types/node": "~6.0.60",
     "codelyzer": "~2.0.0",

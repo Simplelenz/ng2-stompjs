@@ -13,6 +13,7 @@ import { BehaviorSubject as BehaviorSubject$1 } from 'rxjs/BehaviorSubject';
 import { Observable as Observable$1 } from 'rxjs/Observable';
 import { Subject as Subject$1 } from 'rxjs/Subject';
 import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/first';
 import 'rxjs/add/operator/share';
 import { client, over } from '@stomp/stompjs/index';
 var StompState = {};
@@ -134,6 +135,10 @@ var StompRService = (function () {
         }
         // Set function to debug print messages
         this.client.debug = this.debug;
+        // Default messages
+        this.setupOnReceive();
+        // Receipts
+        this.setupReceipts();
     };
     /**
      * Perform connection to STOMP broker
@@ -275,6 +280,42 @@ var StompRService = (function () {
          * A long but good explanatory article at https://medium.com/@benlesh/hot-vs-cold-observables-f8094ed53339
          */
         return coldObservable.share();
+    };
+    /**
+     * Handle messages to default queue, it will include any unhandled messages. We can use this for
+     * RPC type communications.
+     * @return {?}
+     */
+    StompRService.prototype.setupOnReceive = function () {
+        var _this = this;
+        this.defaultMessagesObservable = new Subject$1();
+        this.client.onreceive = function (message) {
+            _this.defaultMessagesObservable.next(message);
+        };
+    };
+    /**
+     * Emit all receipts.
+     * @return {?}
+     */
+    StompRService.prototype.setupReceipts = function () {
+        var _this = this;
+        this.receiptsObservable = new Subject$1();
+        this.client.onreceipt = function (frame) {
+            _this.receiptsObservable.next(frame);
+        };
+    };
+    /**
+     * Wait for receipt, this indicates that server has carried out the related operation
+     * @param {?} receiptId
+     * @param {?} callback
+     * @return {?}
+     */
+    StompRService.prototype.waitForReceipt = function (receiptId, callback) {
+        this.receiptsObservable.filter(function (frame) {
+            return frame.headers['receipt-id'] === receiptId;
+        }).first().subscribe(function (frame) {
+            callback();
+        });
     };
     return StompRService;
 }());

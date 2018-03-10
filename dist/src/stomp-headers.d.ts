@@ -1,4 +1,4 @@
 /** Type definition for Headers */
 export declare type StompHeaders = {
-    [key: string]: string;
+    [key: string]: any;
 };

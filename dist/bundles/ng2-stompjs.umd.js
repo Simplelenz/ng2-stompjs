@@ -1,8 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@angular/core'), require('rxjs/BehaviorSubject'), require('rxjs/Observable'), require('rxjs/Subject'), require('rxjs/add/operator/filter'), require('rxjs/add/operator/share'), require('@stomp/stompjs/index')) :
-	typeof define === 'function' && define.amd ? define(['exports', '@angular/core', 'rxjs/BehaviorSubject', 'rxjs/Observable', 'rxjs/Subject', 'rxjs/add/operator/filter', 'rxjs/add/operator/share', '@stomp/stompjs/index'], factory) :
-	(factory((global['ng2-stompjs'] = {}),global.ng.core,global.Rx,global.Rx,global.Rx,global.Rx.Observable.prototype,global.Rx.Observable.prototype,global['']['/node_modules/@stomp/stompjs/index'].js));
-}(this, (function (exports,core,BehaviorSubject,Observable,Subject,filter,share,index) { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@angular/core'), require('rxjs/BehaviorSubject'), require('rxjs/Observable'), require('rxjs/Subject'), require('rxjs/add/operator/filter'), require('rxjs/add/operator/first'), require('rxjs/add/operator/share'), require('@stomp/stompjs/index')) :
+	typeof define === 'function' && define.amd ? define(['exports', '@angular/core', 'rxjs/BehaviorSubject', 'rxjs/Observable', 'rxjs/Subject', 'rxjs/add/operator/filter', 'rxjs/add/operator/first', 'rxjs/add/operator/share', '@stomp/stompjs/index'], factory) :
+	(factory((global['ng2-stompjs'] = {}),global.ng.core,global.Rx,global.Rx,global.Rx,global.Rx.Observable.prototype,global.Rx.Observable.prototype,global.Rx.Observable.prototype,global['']['/node_modules/@stomp/stompjs/index'].js));
+}(this, (function (exports,core,BehaviorSubject,Observable,Subject,filter,first,share,index) { 'use strict';
 
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
@@ -133,6 +133,10 @@ var StompRService = (function () {
         }
         // Set function to debug print messages
         this.client.debug = this.debug;
+        // Default messages
+        this.setupOnReceive();
+        // Receipts
+        this.setupReceipts();
     };
     /**
      * Perform connection to STOMP broker
@@ -274,6 +278,42 @@ var StompRService = (function () {
          * A long but good explanatory article at https://medium.com/@benlesh/hot-vs-cold-observables-f8094ed53339
          */
         return coldObservable.share();
+    };
+    /**
+     * Handle messages to default queue, it will include any unhandled messages. We can use this for
+     * RPC type communications.
+     * @return {?}
+     */
+    StompRService.prototype.setupOnReceive = function () {
+        var _this = this;
+        this.defaultMessagesObservable = new Subject.Subject();
+        this.client.onreceive = function (message) {
+            _this.defaultMessagesObservable.next(message);
+        };
+    };
+    /**
+     * Emit all receipts.
+     * @return {?}
+     */
+    StompRService.prototype.setupReceipts = function () {
+        var _this = this;
+        this.receiptsObservable = new Subject.Subject();
+        this.client.onreceipt = function (frame) {
+            _this.receiptsObservable.next(frame);
+        };
+    };
+    /**
+     * Wait for receipt, this indicates that server has carried out the related operation
+     * @param {?} receiptId
+     * @param {?} callback
+     * @return {?}
+     */
+    StompRService.prototype.waitForReceipt = function (receiptId, callback) {
+        this.receiptsObservable.filter(function (frame) {
+            return frame.headers['receipt-id'] === receiptId;
+        }).first().subscribe(function (frame) {
+            callback();
+        });
     };
     return StompRService;
 }());

@@ -3,6 +3,7 @@ import { BehaviorSubject as BehaviorSubject$1 } from 'rxjs/BehaviorSubject';
 import { Observable as Observable$1 } from 'rxjs/Observable';
 import { Subject as Subject$1 } from 'rxjs/Subject';
 import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/first';
 import 'rxjs/add/operator/share';
 import { client, over } from '@stomp/stompjs/index';
 
@@ -121,6 +122,10 @@ class StompRService {
         }
         // Set function to debug print messages
         this.client.debug = this.debug;
+        // Default messages
+        this.setupOnReceive();
+        // Receipts
+        this.setupReceipts();
     }
     /**
      * Perform connection to STOMP broker
@@ -257,6 +262,40 @@ class StompRService {
          * A long but good explanatory article at https://medium.com/@benlesh/hot-vs-cold-observables-f8094ed53339
          */
         return coldObservable.share();
+    }
+    /**
+     * Handle messages to default queue, it will include any unhandled messages. We can use this for
+     * RPC type communications.
+     * @return {?}
+     */
+    setupOnReceive() {
+        this.defaultMessagesObservable = new Subject$1();
+        this.client.onreceive = (message) => {
+            this.defaultMessagesObservable.next(message);
+        };
+    }
+    /**
+     * Emit all receipts.
+     * @return {?}
+     */
+    setupReceipts() {
+        this.receiptsObservable = new Subject$1();
+        this.client.onreceipt = (frame) => {
+            this.receiptsObservable.next(frame);
+        };
+    }
+    /**
+     * Wait for receipt, this indicates that server has carried out the related operation
+     * @param {?} receiptId
+     * @param {?} callback
+     * @return {?}
+     */
+    waitForReceipt(receiptId, callback) {
+        this.receiptsObservable.filter((frame) => {
+            return frame.headers['receipt-id'] === receiptId;
+        }).first().subscribe((frame) => {
+            callback();
+        });
     }
 }
 StompRService.decorators = [
